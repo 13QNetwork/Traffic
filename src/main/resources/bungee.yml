@@ -1,0 +1,3 @@
+name: TrafficLib
+main: dev.adrwas.trafficlib.bungee.BungeePlugin
+version: 0.1
