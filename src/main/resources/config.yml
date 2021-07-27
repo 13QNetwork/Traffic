@@ -1,0 +1,22 @@
+# Socket Plugin Configuration
+
+# Config version 0.1
+# Documentation: socket.13Q.org/docs/config/0.1
+
+server: ''
+# IP of your master server, without the port.
+# If you want to host the master server on this Minecraft
+# server, leave this blank.
+
+port: 6000
+# Port of the master server.
+# If you're hosting the master server on this Minecraft server,
+# this is the port that the master server will be hosted on.
+
+password: ''
+# Encryption key for your server. Keys across the master server
+# and all clients must be the same for packets to work. As sending
+# data in plain text is a security threat, this is highly recommended,
+# but can be turned off by leaving this blank.
+
+auto-update: true

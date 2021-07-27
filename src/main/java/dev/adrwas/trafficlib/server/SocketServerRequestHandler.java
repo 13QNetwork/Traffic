@@ -25,9 +25,12 @@ public class SocketServerRequestHandler extends Thread {
 
     public final SocketServer server;
 
-    public SocketServerRequestHandler(SocketServer server, Socket socket) {
+    private String password;
+
+    public SocketServerRequestHandler(SocketServer server, Socket socket, String password) {
         this.socket = socket;
         this.server = server;
+        this.password = password;
     }
 
     @Override
@@ -49,7 +52,7 @@ public class SocketServerRequestHandler extends Thread {
                     System.out.println("Read bytes as " + new String(bytes));
                     System.out.println("Decrypting...");
 
-                    bytes = EncryptionManager.decrypt(bytes, "Pass1word");
+                    bytes = EncryptionManager.decrypt(bytes, this.password);
                     try {
                         ClientPacket packet = ClientPacket.fromByte(bytes);
                         System.out.println("got packet " + packet);

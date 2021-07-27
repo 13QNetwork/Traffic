@@ -17,7 +17,10 @@ import java.util.Base64;
 public class EncryptionManager {
 
     public static byte[] encrypt(byte[] input, String password) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
-        password = "password";
+        if(password == null || password.length() == 0) {
+            return input;
+        }
+
         SecretKey secretKey = getSecretKeyFromPassword(password);
 
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -29,7 +32,10 @@ public class EncryptionManager {
     }
 
     public static byte[] decrypt(byte[] input, String password) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
-        password = "password";
+        if(password == null || password.length() == 0) {
+            return input;
+        }
+
         SecretKey secretKey = getSecretKeyFromPassword(password);
 
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");

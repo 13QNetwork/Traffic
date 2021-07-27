@@ -11,9 +11,9 @@ public class SocketServer extends Thread {
     private ServerSocket serverSocket;
     private int port;
     private boolean running = false;
-
-    public SocketServer(int port) {
-        this.port = port;
+    private String password;
+    public SocketServer(int port, String password) {
+        this.port = port; this.password = password;
     }
 
     public void startServer() {
@@ -39,7 +39,7 @@ public class SocketServer extends Thread {
 
                 Socket socket = serverSocket.accept();
 
-                SocketServerRequestHandler requestHandler = new SocketServerRequestHandler(this, socket);
+                SocketServerRequestHandler requestHandler = new SocketServerRequestHandler(this, socket, password);
                 requestHandler.start();
             } catch (IOException e) {
                 e.printStackTrace();

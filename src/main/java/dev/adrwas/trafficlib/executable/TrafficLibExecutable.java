@@ -21,7 +21,7 @@ public class TrafficLibExecutable {
 //
 //
 
-        SocketServer server = new SocketServer(6000);
+        SocketServer server = new SocketServer(6000, "password");
         server.startServer();
     }
 }
