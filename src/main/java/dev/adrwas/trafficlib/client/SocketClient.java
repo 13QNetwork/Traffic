@@ -1,7 +1,8 @@
 package dev.adrwas.trafficlib.client;
 
-import dev.adrwas.trafficlib.packet.ClientPacket;
-import dev.adrwas.trafficlib.packet.ExamplePacket;
+import dev.adrwas.trafficlib.packet.*;
+import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
+import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 import dev.adrwas.trafficlib.util.EncryptionManager;
 
 import javax.crypto.BadPaddingException;
@@ -17,6 +18,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.HashMap;
 
 public class SocketClient {
 
@@ -33,6 +35,8 @@ public class SocketClient {
     private String encryptionPassword;
 
     private Thread thread;
+
+    public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
 
     protected SocketClient(String address, int port, String encryptionPassword) {
         this.address = address;
@@ -60,6 +64,9 @@ public class SocketClient {
 
             try {
                 sendPacket(new ExamplePacket());
+                sendPacket(new ExamplePacket());
+                sendPacket(new ExamplePacket());
+                sendPacket(new ExamplePacket());
             } catch (InvalidAlgorithmParameterException e) {
                 e.printStackTrace();
             } catch (NoSuchPaddingException e) {
@@ -81,9 +88,47 @@ public class SocketClient {
                     bytes = new byte[length];
 
                     input.readFully(bytes);
+
+                    bytes = EncryptionManager.decrypt(bytes, this.encryptionPassword);
+
+                    ServerPacket packet = (ServerPacket) Packet.fromByte(bytes);
+
+                    if (!(packet instanceof NoTransitUpdates)) {
+                        sendPacket(new PacketClientPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));
+                    }
+
+                    final SocketClient me = this;
+
+                    new Thread() {
+                        public void run() {
+                            packet.onRecievedByThisClient(me);
+
+                            if (!(packet instanceof NoTransitUpdates)) {
+                                try {
+                                    sendPacket(new PacketClientPacketStatus(packet.packetId, PendingPacketStatus.DONE));
+                                } catch (IOException | InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException | InvalidKeySpecException | InvalidKeyException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }.start();
                 }
             } catch (SSLException e) {
                 System.out.println("Socket server closed!");
+            } catch (InvalidAlgorithmParameterException e) {
+                e.printStackTrace();
+            } catch (NoSuchPaddingException e) {
+                e.printStackTrace();
+            } catch (IllegalBlockSizeException e) {
+                e.printStackTrace();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (BadPaddingException e) {
+                e.printStackTrace();
+            } catch (InvalidKeySpecException e) {
+                e.printStackTrace();
+            } catch (InvalidKeyException e) {
+                e.printStackTrace();
             }
 
 
@@ -98,6 +143,10 @@ public class SocketClient {
     }
 
     public void sendPacket(ClientPacket clientPacket) throws IOException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+        if(!(clientPacket instanceof NoTransitUpdates)) {
+            transitPackets.put(clientPacket.packetId, new PendingPacket(clientPacket, PendingPacketStatus.SENDING));
+        }
+        System.out.println("Sending " + clientPacket.toString());
         sendBytes(clientPacket.toByte());
     }
 

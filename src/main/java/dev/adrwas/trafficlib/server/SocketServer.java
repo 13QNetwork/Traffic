@@ -1,7 +1,5 @@
 package dev.adrwas.trafficlib.server;
 
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -12,6 +10,7 @@ public class SocketServer extends Thread {
     private int port;
     private boolean running = false;
     private String password;
+
     public SocketServer(int port, String password) {
         this.port = port; this.password = password;
     }

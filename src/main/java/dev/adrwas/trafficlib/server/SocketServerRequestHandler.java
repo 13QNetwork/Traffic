@@ -1,6 +1,7 @@
 package dev.adrwas.trafficlib.server;
 
-import dev.adrwas.trafficlib.packet.ClientPacket;
+import dev.adrwas.trafficlib.packet.*;
+import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
 import dev.adrwas.trafficlib.util.EncryptionManager;
 
 import javax.crypto.BadPaddingException;
@@ -15,6 +16,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.HashMap;
 
 public class SocketServerRequestHandler extends Thread {
 
@@ -26,6 +28,8 @@ public class SocketServerRequestHandler extends Thread {
     public final SocketServer server;
 
     private String password;
+
+    public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
 
     public SocketServerRequestHandler(SocketServer server, Socket socket, String password) {
         this.socket = socket;
@@ -54,8 +58,25 @@ public class SocketServerRequestHandler extends Thread {
 
                     bytes = EncryptionManager.decrypt(bytes, this.password);
                     try {
-                        ClientPacket packet = ClientPacket.fromByte(bytes);
-                        System.out.println("got packet " + packet);
+                        ClientPacket packet = (ClientPacket) Packet.fromByte(bytes);
+
+                        if(!(packet instanceof NoTransitUpdates)) {
+                            sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));
+                        }
+
+                        final SocketServerRequestHandler me = this;
+
+                        new Thread() {
+                            public void run() {
+                                packet.onRecievedByThisServer(me);
+
+                                try {
+                                    sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.DONE));
+                                } catch (IOException | InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException | InvalidKeySpecException | InvalidKeyException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }.start();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -70,5 +91,24 @@ public class SocketServerRequestHandler extends Thread {
         } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
+    }
+
+    public void sendPacket(ServerPacket serverPacket) throws IOException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+//        if(!(serverPacket instanceof NoTransitUpdates)) {
+//            transitPackets.put(serverPacket.packetId, new PendingPacket(serverPacket, PendingPacketStatus.SENDING));
+//        }
+
+        System.out.println("Sending " + serverPacket.toString());
+
+        sendBytes(serverPacket.toByte());
+    }
+
+    public void sendBytes(byte[] bytes) throws IOException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+        sendRawBytes(EncryptionManager.encrypt(bytes, this.password));
+    }
+
+    public void sendRawBytes(byte[] bytes) throws IOException {
+        out.writeInt(bytes.length);
+        out.write(bytes);
     }
 }
