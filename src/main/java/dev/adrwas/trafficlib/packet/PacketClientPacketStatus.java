@@ -11,6 +11,7 @@ public class PacketClientPacketStatus extends ClientPacket implements NoTransitU
     public final PendingPacketStatus status;
 
     public PacketClientPacketStatus(long relevantPacketId, PendingPacketStatus status) {
+        super(1);
         this.relevantPacketId = relevantPacketId;
         this.status = status;
     }

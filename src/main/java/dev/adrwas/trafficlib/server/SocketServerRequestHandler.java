@@ -59,6 +59,7 @@ public class SocketServerRequestHandler extends Thread {
                     bytes = EncryptionManager.decrypt(bytes, this.password);
                     try {
                         ClientPacket packet = (ClientPacket) Packet.fromByte(bytes);
+                        System.out.println("[server] got packet " + packet.toString() + " with id " + packet.packetId);
 
                         if(!(packet instanceof NoTransitUpdates)) {
                             sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));

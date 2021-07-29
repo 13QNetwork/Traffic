@@ -6,7 +6,13 @@ import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 
 import java.io.Serializable;
 
-public abstract class ServerPacket extends Packet implements Serializable {
+public abstract class ServerPacket implements Packet, Serializable {
+
+    public final long packetId;
+
+    public ServerPacket(long packetId) {
+        this.packetId = packetId;
+    }
 
     public abstract void onRecievedByThisClient(SocketClient client);
 

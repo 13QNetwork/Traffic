@@ -3,19 +3,15 @@ package dev.adrwas.trafficlib.packet;
 import java.io.*;
 import java.util.Random;
 
-public abstract class Packet {
+public interface Packet {
 
-    public final long packetId;
+    final Random packetIdGenerator = new Random();
 
-    public Packet(long packetId) {
-        this.packetId = packetId;
+    public static long generateId() {
+        return packetIdGenerator.nextLong();
     }
 
-    public Packet() {
-        this.packetId = new Random().nextLong();
-    }
-
-    public byte[] toByte() throws IOException {
+    public default byte[] toByte() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutput out;
 
@@ -46,4 +42,5 @@ public abstract class Packet {
 
         return null;
     }
+
 }

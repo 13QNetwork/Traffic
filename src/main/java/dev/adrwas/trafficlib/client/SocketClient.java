@@ -63,10 +63,7 @@ public class SocketClient {
             int length;
 
             try {
-                sendPacket(new ExamplePacket());
-                sendPacket(new ExamplePacket());
-                sendPacket(new ExamplePacket());
-                sendPacket(new ExamplePacket());
+                sendPacket(new ExamplePacket(Packet.generateId()));
             } catch (InvalidAlgorithmParameterException e) {
                 e.printStackTrace();
             } catch (NoSuchPaddingException e) {
@@ -141,12 +138,12 @@ public class SocketClient {
             e.printStackTrace();
         }
     }
-
     public void sendPacket(ClientPacket clientPacket) throws IOException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
+
         if(!(clientPacket instanceof NoTransitUpdates)) {
             transitPackets.put(clientPacket.packetId, new PendingPacket(clientPacket, PendingPacketStatus.SENDING));
         }
-        System.out.println("Sending " + clientPacket.toString());
+        System.out.println("[client] Sending packet " + clientPacket.toString() + " with id " + clientPacket.packetId);
         sendBytes(clientPacket.toByte());
     }
 

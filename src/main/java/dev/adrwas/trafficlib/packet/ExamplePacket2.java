@@ -1,27 +1,29 @@
 package dev.adrwas.trafficlib.packet;
 
 import dev.adrwas.trafficlib.client.SocketClient;
-import dev.adrwas.trafficlib.server.SocketServer;
 import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 
-public class ExamplePacket extends ClientPacket {
+public class ExamplePacket2 extends ClientPacket implements NoTransitUpdates {
 
-    public ExamplePacket(long packetId) {
-        super(packetId);
+    final String name;
+
+    public ExamplePacket2(String name) {
+        super(12345);
+        this.name = name;
     }
 
     @Override
     public void onRecievedByThisServer(SocketServerRequestHandler server) {
-        System.out.println("Example packet recieved by server!!");
+        System.out.println("Example packet recieved by server with name " + name);
     }
 
     @Override
     public void onRecievedByRemoteServer(SocketClient client) {
-        System.out.println("Example packet was recieved");
+
     }
 
     @Override
     public void onProcessedByRemoteServer(SocketClient client) {
-        System.out.println("Example packet was processed");
+
     }
 }
