@@ -53,14 +53,9 @@ public class SocketServerRequestHandler extends Thread {
                     bytes = new byte[length];
                     in.readFully(bytes, 0, length);
 
-                    System.out.println("Read bytes as " + new String(bytes));
-                    System.out.println("Decrypting...");
-
                     bytes = EncryptionManager.decrypt(bytes, this.password);
                     try {
                         ClientPacket packet = (ClientPacket) Packet.fromByte(bytes);
-                        System.out.println("[server] got packet " + packet.toString() + " with id " + packet.packetId);
-
                         if(!(packet instanceof NoTransitUpdates)) {
                             sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));
                         }
@@ -95,11 +90,9 @@ public class SocketServerRequestHandler extends Thread {
     }
 
     public void sendPacket(ServerPacket serverPacket) throws IOException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
-//        if(!(serverPacket instanceof NoTransitUpdates)) {
-//            transitPackets.put(serverPacket.packetId, new PendingPacket(serverPacket, PendingPacketStatus.SENDING));
-//        }
-
-        System.out.println("Sending " + serverPacket.toString());
+        if(!(serverPacket instanceof NoTransitUpdates)) {
+            transitPackets.put(serverPacket.packetId, new PendingPacket(serverPacket, PendingPacketStatus.SENDING));
+        }
 
         sendBytes(serverPacket.toByte());
     }
@@ -111,5 +104,9 @@ public class SocketServerRequestHandler extends Thread {
     public void sendRawBytes(byte[] bytes) throws IOException {
         out.writeInt(bytes.length);
         out.write(bytes);
+    }
+
+    public void log(String message) {
+        System.out.println("[TRAFFIC CONN " + this.hashCode() + "] " + message);
     }
 }

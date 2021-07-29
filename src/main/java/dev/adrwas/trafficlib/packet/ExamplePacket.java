@@ -12,16 +12,16 @@ public class ExamplePacket extends ClientPacket {
 
     @Override
     public void onRecievedByThisServer(SocketServerRequestHandler server) {
-        System.out.println("Example packet recieved by server!!");
+        server.log("Example packet recieved by server");
     }
 
     @Override
     public void onRecievedByRemoteServer(SocketClient client) {
-        System.out.println("Example packet was recieved");
+        client.log("Remote server recieved example packet");
     }
 
     @Override
     public void onProcessedByRemoteServer(SocketClient client) {
-        System.out.println("Example packet was processed");
+        client.log("Remote server processed example packet");
     }
 }

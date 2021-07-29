@@ -5,13 +5,13 @@ import java.util.Random;
 
 public interface Packet {
 
-    final Random packetIdGenerator = new Random();
+    Random packetIdGenerator = new Random();
 
-    public static long generateId() {
+    static long generateId() {
         return packetIdGenerator.nextLong();
     }
 
-    public default byte[] toByte() throws IOException {
+    default byte[] toByte() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutput out;
 
@@ -25,7 +25,7 @@ public interface Packet {
         return bytes;
     }
 
-    public static Packet fromByte(byte[] bytes) {
+    static Packet fromByte(byte[] bytes) {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
 
