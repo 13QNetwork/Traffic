@@ -7,6 +7,15 @@ public interface Packet {
 
     Random packetIdGenerator = new Random();
 
+    enum PacketOperationTiming {
+        ASYNC, // continue process immediately
+        SYNC_FINISH_WHEN_SENT, // continue process when local operation is finished
+        SYNC_FINISH_WHEN_RECIEVED, // continue process when the packet is received by the remote server
+        SYNC_FINISH_AFTER_RECIEVED, // continue process when the packet is received by the remote server and local processing is done
+        SYNC_FINISH_WHEN_PROCESSED, // continue process when the packet is processed by the remote server
+        SYNC_FINISH_AFTER_PROCESSED // continue process when the packet is processed by the remote server and local processing is done
+    }
+
     static long generateId() {
         return packetIdGenerator.nextLong();
     }

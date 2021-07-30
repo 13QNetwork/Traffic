@@ -25,9 +25,13 @@ public class PacketServerPacketStatus extends ServerPacket implements NoTransitU
             packet.status = this.status;
 
             if(status.equals(PendingPacketStatus.PROCESSING)) {
+                packet.fireEvent(PendingPacket.PendingPacketEvent.PRE_RECEIVED);
                 ((ClientPacket) packet.packet).onRecievedByRemoteServer(client);
+                packet.fireEvent(PendingPacket.PendingPacketEvent.POST_RECEIVED);
             } else if(status.equals(PendingPacketStatus.DONE)) {
+                packet.fireEvent(PendingPacket.PendingPacketEvent.PRE_PROCESSED);
                 ((ClientPacket) packet.packet).onProcessedByRemoteServer(client);
+                packet.fireEvent(PendingPacket.PendingPacketEvent.POST_PROCESSED);
                 client.transitPackets.remove(relevantPacketId);
             }
         }

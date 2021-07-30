@@ -1,8 +1,8 @@
 package dev.adrwas.trafficlib.client;
 
+import com.sun.jdi.InvalidTypeException;
 import dev.adrwas.trafficlib.packet.*;
 import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
-import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 import dev.adrwas.trafficlib.util.EncryptionManager;
 
 import javax.crypto.BadPaddingException;
@@ -18,6 +18,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.sql.SQLClientInfoException;
 import java.util.HashMap;
 
 public class SocketClient {
@@ -64,19 +65,41 @@ public class SocketClient {
 
             try {
                 sendPacket(new ExamplePacket(Packet.generateId()));
-            } catch (InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
-            } catch (NoSuchPaddingException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-            } catch (InvalidKeySpecException e) {
-                e.printStackTrace();
-            } catch (InvalidKeyException e) {
+
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(5000);
+                        log("Sending my second example packet!");
+
+
+                        sendPacket(new ExamplePacket(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
+
+
+                        log("My second example packet is done processing!");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (InvalidKeyException e) {
+                        e.printStackTrace();
+                    } catch (InvalidAlgorithmParameterException e) {
+                        e.printStackTrace();
+                    } catch (NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                    } catch (InvalidTypeException e) {
+                        e.printStackTrace();
+                    } catch (InvalidKeySpecException e) {
+                        e.printStackTrace();
+                    } catch (IllegalBlockSizeException e) {
+                        e.printStackTrace();
+                    } catch (BadPaddingException e) {
+                        e.printStackTrace();
+                    } catch (NoSuchPaddingException | PacketTransmissionException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }).start();
+            } catch (PacketTransmissionException e) {
                 e.printStackTrace();
             }
 
@@ -103,7 +126,7 @@ public class SocketClient {
                             if (!(packet instanceof NoTransitUpdates)) {
                                 try {
                                     sendPacket(new PacketClientPacketStatus(packet.packetId, PendingPacketStatus.DONE));
-                                } catch (IOException | InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException | InvalidKeySpecException | InvalidKeyException e) {
+                                } catch (PacketTransmissionException e) {
                                     e.printStackTrace();
                                 }
                             }
@@ -126,6 +149,8 @@ public class SocketClient {
                 e.printStackTrace();
             } catch (InvalidKeyException e) {
                 e.printStackTrace();
+            } catch (PacketTransmissionException e) {
+                e.printStackTrace();
             }
 
 
@@ -138,13 +163,91 @@ public class SocketClient {
             e.printStackTrace();
         }
     }
-    public void sendPacket(ClientPacket clientPacket) throws IOException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
-        if(!(clientPacket instanceof NoTransitUpdates)) {
-            transitPackets.put(clientPacket.packetId, new PendingPacket(clientPacket, PendingPacketStatus.SENDING));
+
+    public void sendPacket(ClientPacket clientPacket, Packet.PacketOperationTiming packetOperationTiming) throws InterruptedException, IOException, InvalidTypeException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchPaddingException, BadPaddingException, InvalidKeySpecException, IllegalBlockSizeException, PacketTransmissionException {
+        PendingPacket pendingPacket = new PendingPacket(clientPacket, PendingPacketStatus.SENDING);
+
+        if(packetOperationTiming.equals(Packet.PacketOperationTiming.ASYNC)) {
+            new Thread(() -> {
+                try {
+                    sendPacket(pendingPacket);
+                } catch (PacketTransmissionException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } else if(packetOperationTiming.equals(Packet.PacketOperationTiming.SYNC_FINISH_WHEN_SENT)) {
+            sendPacket(pendingPacket);
+        } else {
+            PendingPacket.PendingPacketEvent packetEvent;
+            switch (packetOperationTiming) {
+                case SYNC_FINISH_WHEN_RECIEVED:
+                    packetEvent = PendingPacket.PendingPacketEvent.PRE_RECEIVED;
+                    break;
+                case SYNC_FINISH_AFTER_RECIEVED:
+                    packetEvent = PendingPacket.PendingPacketEvent.POST_RECEIVED;
+                    break;
+                case SYNC_FINISH_WHEN_PROCESSED:
+                    packetEvent = PendingPacket.PendingPacketEvent.PRE_PROCESSED;
+                    break;
+                default:
+                    packetEvent = PendingPacket.PendingPacketEvent.POST_PROCESSED;
+                    break;
+            }
+
+            final Thread thread = Thread.currentThread();
+            pendingPacket.addEventListener(packetEvent, () -> {
+                synchronized (thread) {
+                    thread.notify();
+                }
+                return null;
+            });
+
+            sendPacket(pendingPacket);
+
+            synchronized (thread) {
+                thread.wait();
+            }
+        }
+    }
+
+    public void sendPacket(ClientPacket clientPacket) throws PacketTransmissionException {
+        sendPacket(new PendingPacket(clientPacket, PendingPacketStatus.SENDING));
+    }
+
+    protected void sendPacket(PendingPacket pendingPacket) throws PacketTransmissionException {
+        if(!(pendingPacket.packet instanceof ClientPacket)) {
+            throw new PacketTransmissionException("Pending Packet sent by client is not a client packet");
         }
 
-        System.out.println("[client] Sending packet " + clientPacket.toString() + " with id " + clientPacket.packetId);
-        sendBytes(clientPacket.toByte());
+        try {
+            ClientPacket clientPacket = (ClientPacket) pendingPacket.packet;
+
+            if(!(clientPacket instanceof NoTransitUpdates)) {
+                transitPackets.put(clientPacket.packetId, pendingPacket);
+            }
+
+            pendingPacket.fireEvent(PendingPacket.PendingPacketEvent.PRE_SENT);
+
+            byte[] bytes;
+
+            try {
+                bytes = clientPacket.toByte();
+            } catch (IOException exception) {
+                throw new PacketTransmissionException("IOException when serializing client packet", exception);
+            }
+
+            try {
+                sendBytes(bytes);
+            } catch (IOException e) {
+                throw new PacketTransmissionException("IOException when sending client packet: " + e.getMessage());
+            } catch (InvalidAlgorithmParameterException | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException | InvalidKeySpecException | InvalidKeyException | NoSuchPaddingException exception) {
+                throw new PacketTransmissionException(exception.getClass().getName() + " when encrypting client packet: " + exception.getMessage());
+            }
+
+            pendingPacket.fireEvent(PendingPacket.PendingPacketEvent.POST_SENT);
+        } catch (Exception e) {
+            throw new PacketTransmissionException(e.getMessage(), e);
+        }
     }
 
     public void sendBytes(byte[] bytes) throws IOException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeySpecException, InvalidKeyException {
