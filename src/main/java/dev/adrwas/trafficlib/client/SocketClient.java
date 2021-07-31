@@ -63,45 +63,27 @@ public class SocketClient {
             byte[] bytes;
             int length;
 
-            try {
-                sendPacket(new ExamplePacket(Packet.generateId()));
-
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(5000);
-                        log("Sending my second example packet!");
-
-
-                        sendPacket(new ExamplePacket(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
-
-
-                        log("My second example packet is done processing!");
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (InvalidKeyException e) {
-                        e.printStackTrace();
-                    } catch (InvalidAlgorithmParameterException e) {
-                        e.printStackTrace();
-                    } catch (NoSuchAlgorithmException e) {
-                        e.printStackTrace();
-                    } catch (InvalidTypeException e) {
-                        e.printStackTrace();
-                    } catch (InvalidKeySpecException e) {
-                        e.printStackTrace();
-                    } catch (IllegalBlockSizeException e) {
-                        e.printStackTrace();
-                    } catch (BadPaddingException e) {
-                        e.printStackTrace();
-                    } catch (NoSuchPaddingException | PacketTransmissionException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                }).start();
-            } catch (PacketTransmissionException e) {
-                e.printStackTrace();
-            }
+//            try {
+////                sendPacket(new ExamplePacket(Packet.generateId()));
+////
+////                new Thread(() -> {
+////                    try {
+////                        Thread.sleep(5000);
+////                        log("Sending my second example packet!");
+////
+////
+////                        sendPacket(new ExamplePacket(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
+////
+////
+////                        log("My second example packet is done processing!");
+////                    } catch (InterruptedException | PacketTransmissionException e) {
+////                        e.printStackTrace();
+////                    }
+////
+////                }).start();
+//            } catch (PacketTransmissionException e) {
+//                e.printStackTrace();
+//            }
 
             try {
                 while(!closed && (length = input.readInt()) > -1) {
@@ -125,6 +107,7 @@ public class SocketClient {
 
                             if (!(packet instanceof NoTransitUpdates)) {
                                 try {
+                                    System.out.println("Sending packet status of done");
                                     sendPacket(new PacketClientPacketStatus(packet.packetId, PendingPacketStatus.DONE));
                                 } catch (PacketTransmissionException e) {
                                     e.printStackTrace();
@@ -164,7 +147,7 @@ public class SocketClient {
         }
     }
 
-    public void sendPacket(ClientPacket clientPacket, Packet.PacketOperationTiming packetOperationTiming) throws InterruptedException, IOException, InvalidTypeException, NoSuchAlgorithmException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchPaddingException, BadPaddingException, InvalidKeySpecException, IllegalBlockSizeException, PacketTransmissionException {
+    public void sendPacket(ClientPacket clientPacket, Packet.PacketOperationTiming packetOperationTiming) throws PacketTransmissionException {
         PendingPacket pendingPacket = new PendingPacket(clientPacket, PendingPacketStatus.SENDING);
 
         if(packetOperationTiming.equals(Packet.PacketOperationTiming.ASYNC)) {
@@ -205,7 +188,11 @@ public class SocketClient {
             sendPacket(pendingPacket);
 
             synchronized (thread) {
-                thread.wait();
+                try {
+                    thread.wait();
+                } catch (InterruptedException e) {
+                    throw new PacketTransmissionException("Synchronization error: " + e.getMessage(), e);
+                }
             }
         }
     }

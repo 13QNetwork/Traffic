@@ -18,16 +18,23 @@ public class PacketClientPacketStatus extends ClientPacket implements NoTransitU
 
     @Override
     public void onRecievedByThisServer(SocketServerRequestHandler server) {
+        System.out.println("Packet client packet status recieved");
         if(server.transitPackets.containsKey(relevantPacketId)) {
+            System.out.println("Found packet");
             PendingPacket<?> packet = server.transitPackets.get(relevantPacketId);
             if(!(packet.packet instanceof ServerPacket)) return;
+            System.out.println("packet is valid");
             packet.status = this.status;
 
             if(status.equals(PendingPacketStatus.PROCESSING)) {
+                packet.fireEvent(PendingPacket.PendingPacketEvent.PRE_RECEIVED);
                 ((ServerPacket) packet.packet).onRecievedByRemoteClient(server);
+                packet.fireEvent(PendingPacket.PendingPacketEvent.POST_RECEIVED);
             } else if(status.equals(PendingPacketStatus.DONE)) {
+                packet.fireEvent(PendingPacket.PendingPacketEvent.PRE_PROCESSED);
                 ((ServerPacket) packet.packet).onProcessedByRemoteClient(server);
                 server.transitPackets.remove(relevantPacketId);
+                packet.fireEvent(PendingPacket.PendingPacketEvent.POST_PROCESSED);
             }
         }
     }
