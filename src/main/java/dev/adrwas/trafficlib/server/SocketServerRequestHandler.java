@@ -58,22 +58,6 @@ public class SocketServerRequestHandler extends Thread {
             byte[] bytes;
             int length;
 
-            new Thread(() -> {
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    sendPacket(new PacketServerRequestPlayers(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
-                } catch (PacketTransmissionException e) {
-                    e.printStackTrace();
-                }
-                log("Got players!");
-                for(Player player : players) {
-                    log("- " + player.getName());
-                }
-            }).start();
             try {
                 while((length = in.readInt()) > -1) {
                     bytes = new byte[length];
@@ -265,6 +249,13 @@ public class SocketServerRequestHandler extends Thread {
     public void sendRawBytes(byte[] bytes) throws IOException {
         out.writeInt(bytes.length);
         out.write(bytes);
+    }
+
+    public ArrayList<Player> getPlayers(boolean refetch) throws PacketTransmissionException {
+        if(refetch) {
+               sendPacket(new PacketServerRequestPlayers(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
+        }
+        return players;
     }
 
     public void log(String message) {
