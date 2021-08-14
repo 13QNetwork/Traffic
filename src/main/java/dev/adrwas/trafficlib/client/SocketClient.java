@@ -43,7 +43,7 @@ public class SocketClient {
 
     public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
 
-    protected SocketClient(String address, int port, String encryptionPassword) {
+    public SocketClient(String address, int port, String encryptionPassword) {
         this.address = address;
         this.port = port;
         this.encryptionPassword = encryptionPassword;

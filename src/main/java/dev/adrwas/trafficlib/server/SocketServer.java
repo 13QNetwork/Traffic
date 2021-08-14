@@ -3,6 +3,7 @@ package dev.adrwas.trafficlib.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class SocketServer extends Thread {
 
@@ -10,6 +11,7 @@ public class SocketServer extends Thread {
     private int port;
     private boolean running = false;
     private String password;
+    public ArrayList<SocketServerRequestHandler> requestHandlers = new ArrayList<SocketServerRequestHandler>();
 
     public SocketServer(int port, String password) {
         this.port = port; this.password = password;
@@ -39,6 +41,7 @@ public class SocketServer extends Thread {
                 Socket socket = serverSocket.accept();
 
                 SocketServerRequestHandler requestHandler = new SocketServerRequestHandler(this, socket, password);
+                requestHandlers.add(requestHandler);
                 requestHandler.start();
             } catch (IOException e) {
                 e.printStackTrace();
