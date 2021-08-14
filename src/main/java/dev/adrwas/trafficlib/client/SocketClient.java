@@ -1,6 +1,5 @@
 package dev.adrwas.trafficlib.client;
 
-import com.sun.jdi.InvalidTypeException;
 import dev.adrwas.trafficlib.packet.*;
 import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
 import dev.adrwas.trafficlib.util.EncryptionManager;
@@ -18,8 +17,11 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.sql.SQLClientInfoException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class SocketClient {
 
@@ -38,6 +40,8 @@ public class SocketClient {
     private Thread thread;
 
     public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
+
+    public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
 
     protected SocketClient(String address, int port, String encryptionPassword) {
         this.address = address;
@@ -63,27 +67,26 @@ public class SocketClient {
             byte[] bytes;
             int length;
 
-//            try {
-////                sendPacket(new ExamplePacket(Packet.generateId()));
-////
-////                new Thread(() -> {
-////                    try {
-////                        Thread.sleep(5000);
-////                        log("Sending my second example packet!");
-////
-////
-////                        sendPacket(new ExamplePacket(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
-////
-////
-////                        log("My second example packet is done processing!");
-////                    } catch (InterruptedException | PacketTransmissionException e) {
-////                        e.printStackTrace();
-////                    }
-////
-////                }).start();
-//            } catch (PacketTransmissionException e) {
-//                e.printStackTrace();
-//            }
+            //                sendPacket(new ExamplePacket(Packet.generateId()));
+//
+            new Thread(() -> {
+                try {
+                    Thread.sleep(5000);
+                    log("Sending my example packet!");
+
+                    long packetId = Packet.generateId();
+
+                    sendPacketWaitOtherPacket(new ExamplePacket(packetId), new GlobalPacketListener(false, (packet) -> {
+                        return !( packet instanceof NoTransitUpdates);
+                    }));
+
+
+                    log("My second example packet is done processing!");
+                } catch (InterruptedException | PacketTransmissionException e) {
+                    e.printStackTrace();
+                }
+
+            }).start();
 
             try {
                 while(!closed && (length = input.readInt()) > -1) {
@@ -103,7 +106,29 @@ public class SocketClient {
 
                     new Thread() {
                         public void run() {
+                            Iterator<GlobalPacketListener> iterator = globalPacketListeners.iterator();
+                            while(iterator.hasNext()) {
+                                GlobalPacketListener listener = iterator.next();
+                                if (!listener.runBeforeProcessing) break;
+                                try {
+                                    if (listener.fn.apply(packet)) iterator.remove();
+                                } catch (Exception exception) {
+                                    exception.printStackTrace();
+                                }
+                            }
+
                             packet.onRecievedByThisClient(me);
+
+                            iterator = globalPacketListeners.iterator();
+                            while(iterator.hasNext()) {
+                                GlobalPacketListener listener = iterator.next();
+                                if(listener.runBeforeProcessing) break;
+                                try {
+                                    if(listener.fn.apply(packet)) iterator.remove();
+                                } catch (Exception exception) {
+                                    exception.printStackTrace();
+                                }
+                            }
 
                             if (!(packet instanceof NoTransitUpdates)) {
                                 try {
@@ -145,6 +170,39 @@ public class SocketClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Packet sendPacketWaitOtherPacket(ClientPacket clientPacket, GlobalPacketListener listener) throws PacketTransmissionException {
+        PendingPacket pendingPacket = new PendingPacket(clientPacket, PendingPacketStatus.SENDING);
+
+        final Thread thread = Thread.currentThread();
+
+        AtomicReference<Packet> packetAtomicReference = new AtomicReference<Packet>();
+
+        globalPacketListeners.add(new GlobalPacketListener(listener.runBeforeProcessing, (packet) -> {
+            if(listener.fn.apply(packet)) {
+                log("notifying thread");
+                synchronized (thread) {
+                    packetAtomicReference.set(packet);
+                    thread.notify();
+                }
+                return true;
+            } else {
+                return false;
+            }
+        }));
+
+        sendPacket(pendingPacket);
+
+        synchronized (thread) {
+            try {
+                thread.wait();
+            } catch (InterruptedException e) {
+                throw new PacketTransmissionException("Synchronization error: " + e.getMessage(), e);
+            }
+        }
+
+        return packetAtomicReference.get();
     }
 
     public void sendPacket(ClientPacket clientPacket, Packet.PacketOperationTiming packetOperationTiming) throws PacketTransmissionException {

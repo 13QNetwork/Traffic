@@ -13,6 +13,11 @@ public class ExamplePacket extends ClientPacket {
     @Override
     public void onRecievedByThisServer(SocketServerRequestHandler server) {
         server.log("Example packet recieved by server");
+        try {
+            server.sendPacket(new ExamplePacketReponse(packetId));
+        } catch (PacketTransmissionException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

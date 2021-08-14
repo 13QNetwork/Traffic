@@ -49,7 +49,6 @@ public class PendingPacket<T extends Packet> {
     }
 
     public void fireEvent(PendingPacketEvent event) {
-        System.out.println("Firing " + event.name());
         if(eventListeners.containsKey(event)) {
             eventListeners.get(event).forEach((func) -> {
                 try {

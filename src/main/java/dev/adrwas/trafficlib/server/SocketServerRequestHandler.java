@@ -1,6 +1,5 @@
 package dev.adrwas.trafficlib.server;
 
-import com.sun.jdi.InvalidTypeException;
 import dev.adrwas.trafficlib.packet.*;
 import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
 import dev.adrwas.trafficlib.util.EncryptionManager;
@@ -17,7 +16,11 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class SocketServerRequestHandler extends Thread {
 
@@ -31,6 +34,10 @@ public class SocketServerRequestHandler extends Thread {
     private String password;
 
     public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
+
+    public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
+
+    public boolean recievedHandshake = false;
 
     public SocketServerRequestHandler(SocketServer server, Socket socket, String password) {
         this.socket = socket;
@@ -51,16 +58,16 @@ public class SocketServerRequestHandler extends Thread {
             System.out.println("starting new thread...");
             new Thread(() -> {
                 System.out.println("new thread started");
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    sendPacket(new PacketServerRequestPlayers(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
-                } catch (PacketTransmissionException e) {
-                    e.printStackTrace();
-                }
+//                try {
+//                    Thread.sleep(2000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                try {
+//                    sendPacket(new PacketServerRequestPlayers(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
+//                } catch (PacketTransmissionException e) {
+//                    e.printStackTrace();
+//                }
 
                 System.out.println("got players successfully (v2)");
             }).start();
@@ -80,7 +87,30 @@ public class SocketServerRequestHandler extends Thread {
                         final SocketServerRequestHandler me = this;
 
                         new Thread(() -> {
+                            Iterator<GlobalPacketListener> iterator = globalPacketListeners.iterator();
+                            while(iterator.hasNext()) {
+                                GlobalPacketListener listener = iterator.next();
+                                if (!listener.runBeforeProcessing) break;
+                                try {
+                                    if (listener.fn.apply(packet)) iterator.remove();
+                                } catch (Exception exception) {
+                                    exception.printStackTrace();
+                                }
+                            }
+
+
                             packet.onRecievedByThisServer(me);
+
+                            iterator = globalPacketListeners.iterator();
+                            while(iterator.hasNext()) {
+                                GlobalPacketListener listener = iterator.next();
+                                if(listener.runBeforeProcessing) break;
+                                try {
+                                    if(listener.fn.apply(packet)) iterator.remove();
+                                } catch (Exception exception) {
+                                    exception.printStackTrace();
+                                }
+                            }
 
                             try {
                                 sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.DONE));
@@ -102,6 +132,38 @@ public class SocketServerRequestHandler extends Thread {
         } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
+    }
+
+    public Packet sendPacketWaitOtherPacket(ServerPacket serverPacket, GlobalPacketListener listener) throws PacketTransmissionException {
+        PendingPacket pendingPacket = new PendingPacket(serverPacket, PendingPacketStatus.SENDING);
+
+        final Thread thread = Thread.currentThread();
+        
+        AtomicReference<Packet> packetAtomicReference = new AtomicReference<Packet>();
+        
+        globalPacketListeners.add(new GlobalPacketListener(listener.runBeforeProcessing, (packet) -> {
+           if(listener.fn.apply(packet)) {
+               synchronized (thread) {
+                   packetAtomicReference.set(new PacketServerRequestPlayers(Packet.generateId()));
+                   thread.notify();
+               }
+               return true;
+           } else {
+               return false;
+           }
+        }));
+
+        sendPacket(pendingPacket);
+
+        synchronized (thread) {
+            try {
+                thread.wait();
+            } catch (InterruptedException e) {
+                throw new PacketTransmissionException("Synchronization error: " + e.getMessage(), e);
+            }
+        }
+
+        return packetAtomicReference.get();
     }
 
     public void sendPacket(ServerPacket serverPacket, Packet.PacketOperationTiming packetOperationTiming) throws PacketTransmissionException {

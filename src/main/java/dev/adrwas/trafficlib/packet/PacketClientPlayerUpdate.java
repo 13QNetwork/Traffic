@@ -23,4 +23,12 @@ public class PacketClientPlayerUpdate extends ClientPacket {
     public void onProcessedByRemoteServer(SocketClient client) {
         client.log("PacketClientPlayerUpdate processed by remote server");
     }
+
+    public interface PlayerUpdateData {
+        //
+    }
+
+    public static class PlayerUpdateDataPlayerConnect {
+
+    }
 }
