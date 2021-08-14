@@ -1,7 +1,14 @@
 package dev.adrwas.trafficlib.packet;
 
+import com.google.common.collect.Lists;
+import dev.adrwas.trafficlib.TrafficLib;
 import dev.adrwas.trafficlib.client.SocketClient;
+import dev.adrwas.trafficlib.packet.player.SpigotPlayer;
 import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
 
 public class PacketServerRequestPlayers extends ServerPacket {
 
@@ -12,9 +19,14 @@ public class PacketServerRequestPlayers extends ServerPacket {
     @Override
     public void onRecievedByThisClient(SocketClient client) {
         try {
-            System.out.println("PacketClientPlayerUpdate sending");
-            client.sendPacket(new PacketClientPlayerUpdate(Packet.generateId()), PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
-            System.out.println("PacketClientPlayerUpdate done processing ");
+            if(TrafficLib.getInstance().environment.equals("CLIENT_SPIGOT")) {
+                ArrayList<SpigotPlayer> players = new ArrayList<SpigotPlayer>();
+                for(Player player : Bukkit.getOnlinePlayers()) {
+                    players.add(new SpigotPlayer(player.getUniqueId(), player.getName()));
+                }
+
+                client.sendPacket(new PacketClientPlayerUpdate(this.packetId, new PacketClientPlayerUpdate.PlayerUpdateDataAllPlayersSpigot(players)), PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
+            }
         } catch (PacketTransmissionException e) {
             e.printStackTrace();
         }

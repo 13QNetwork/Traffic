@@ -1,8 +1,9 @@
 package dev.adrwas.trafficlib.packet.player;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public class SpigotPlayer implements Player {
+public class SpigotPlayer implements Player, Serializable {
 
     private final UUID uuid;
     private final String playerName;

@@ -2,6 +2,7 @@ package dev.adrwas.trafficlib.server;
 
 import dev.adrwas.trafficlib.packet.*;
 import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
+import dev.adrwas.trafficlib.packet.player.Player;
 import dev.adrwas.trafficlib.util.EncryptionManager;
 
 import javax.crypto.BadPaddingException;
@@ -37,6 +38,8 @@ public class SocketServerRequestHandler extends Thread {
 
     public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
 
+    public ArrayList<Player> players = new ArrayList<Player>();
+
     public boolean recievedHandshake = false;
 
     public SocketServerRequestHandler(SocketServer server, Socket socket, String password) {
@@ -55,23 +58,22 @@ public class SocketServerRequestHandler extends Thread {
             byte[] bytes;
             int length;
 
-            System.out.println("starting new thread...");
             new Thread(() -> {
-                System.out.println("new thread started");
-//                try {
-//                    Thread.sleep(2000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//                try {
-//                    sendPacket(new PacketServerRequestPlayers(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
-//                } catch (PacketTransmissionException e) {
-//                    e.printStackTrace();
-//                }
-
-                System.out.println("got players successfully (v2)");
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    sendPacket(new PacketServerRequestPlayers(Packet.generateId()), Packet.PacketOperationTiming.SYNC_FINISH_AFTER_PROCESSED);
+                } catch (PacketTransmissionException e) {
+                    e.printStackTrace();
+                }
+                log("Got players!");
+                for(Player player : players) {
+                    log("- " + player.getName());
+                }
             }).start();
-
             try {
                 while((length = in.readInt()) > -1) {
                     bytes = new byte[length];

@@ -67,25 +67,7 @@ public class SocketClient {
             byte[] bytes;
             int length;
 
-            //                sendPacket(new ExamplePacket(Packet.generateId()));
-//
             new Thread(() -> {
-                try {
-                    Thread.sleep(5000);
-                    log("Sending my example packet!");
-
-                    long packetId = Packet.generateId();
-
-                    sendPacketWaitOtherPacket(new ExamplePacket(packetId), new GlobalPacketListener(false, (packet) -> {
-                        return !( packet instanceof NoTransitUpdates);
-                    }));
-
-
-                    log("My second example packet is done processing!");
-                } catch (InterruptedException | PacketTransmissionException e) {
-                    e.printStackTrace();
-                }
-
             }).start();
 
             try {
@@ -132,7 +114,6 @@ public class SocketClient {
 
                             if (!(packet instanceof NoTransitUpdates)) {
                                 try {
-                                    System.out.println("Sending packet status of done");
                                     sendPacket(new PacketClientPacketStatus(packet.packetId, PendingPacketStatus.DONE));
                                 } catch (PacketTransmissionException e) {
                                     e.printStackTrace();
@@ -181,7 +162,6 @@ public class SocketClient {
 
         globalPacketListeners.add(new GlobalPacketListener(listener.runBeforeProcessing, (packet) -> {
             if(listener.fn.apply(packet)) {
-                log("notifying thread");
                 synchronized (thread) {
                     packetAtomicReference.set(packet);
                     thread.notify();

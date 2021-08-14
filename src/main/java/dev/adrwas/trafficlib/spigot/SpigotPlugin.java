@@ -1,7 +1,9 @@
 package dev.adrwas.trafficlib.spigot;
 
+import dev.adrwas.trafficlib.TrafficLib;
 import dev.adrwas.trafficlib.client.SocketClientAPI;
 import dev.adrwas.trafficlib.server.SocketServer;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -14,9 +16,12 @@ public class SpigotPlugin extends JavaPlugin {
     private boolean autoUpdate;
     private String password;
 
+    private SocketServer socketServer;
+
     @Override
     public void onEnable() {
         getLogger().info("TrafficLib for Spigot enabled");
+        TrafficLib.setInstance(new TrafficLib("CLIENT_SPIGOT", "0.1"));
 
         loadConfig();
 
@@ -27,8 +32,8 @@ public class SpigotPlugin extends JavaPlugin {
         } else {
             System.out.println("Hosting master server on port " + this.port + "...");
 
-            SocketServer server = new SocketServer(this.port, this.password);
-            server.startServer();
+            this.socketServer = new SocketServer(this.port, this.password);
+            socketServer.startServer();
 
             SocketClientAPI.setMainClient(
                     SocketClientAPI.startSocketClient("localhost", this.port, this.password)
@@ -69,5 +74,9 @@ public class SpigotPlugin extends JavaPlugin {
             configuration.set("password", password);
             this.password = password;
         }
+    }
+
+    @Override
+    public void onDisable() {
     }
 }
