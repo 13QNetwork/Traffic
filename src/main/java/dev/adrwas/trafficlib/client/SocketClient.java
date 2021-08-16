@@ -43,6 +43,8 @@ public class SocketClient {
 
     public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
 
+    public boolean sentSuccessfulHandshake = false;
+
     public SocketClient(String address, int port, String encryptionPassword) {
         this.address = address;
         this.port = port;
@@ -67,8 +69,7 @@ public class SocketClient {
             byte[] bytes;
             int length;
 
-            new Thread(() -> {
-            }).start();
+            sendPacket(new PacketClientHandshake(Packet.generateId(), "server", "bungee", "0.1", new String[]{}), Packet.PacketOperationTiming.ASYNC);
 
             try {
                 while(!closed && (length = input.readInt()) > -1) {
@@ -149,6 +150,8 @@ public class SocketClient {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (PacketTransmissionException e) {
             e.printStackTrace();
         }
     }

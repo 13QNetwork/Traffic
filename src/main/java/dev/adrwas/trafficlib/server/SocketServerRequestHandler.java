@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class SocketServerRequestHandler extends Thread {
 
-    private Socket socket;
+    public Socket socket;
 
     private DataInputStream in;
     private DataOutputStream out;
@@ -39,6 +39,13 @@ public class SocketServerRequestHandler extends Thread {
     public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
 
     public ArrayList<Player> players = new ArrayList<Player>();
+
+    public String serverId;
+    public String serverType;
+
+    public String trafficLibVersion;
+
+    public String[] plugins;
 
     public boolean recievedHandshake = false;
 
@@ -66,44 +73,47 @@ public class SocketServerRequestHandler extends Thread {
                     bytes = EncryptionManager.decrypt(bytes, this.password);
                     try {
                         ClientPacket packet = (ClientPacket) Packet.fromByte(bytes);
-                        if(!(packet instanceof NoTransitUpdates)) {
-                            sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));
+
+                        if(recievedHandshake || packet instanceof PacketClientHandshake) {
+                            if (!(packet instanceof NoTransitUpdates)) {
+                                sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));
+                            }
+
+                            final SocketServerRequestHandler me = this;
+
+                            new Thread(() -> {
+                                Iterator<GlobalPacketListener> iterator = globalPacketListeners.iterator();
+                                while (iterator.hasNext()) {
+                                    GlobalPacketListener listener = iterator.next();
+                                    if (!listener.runBeforeProcessing) break;
+                                    try {
+                                        if (listener.fn.apply(packet)) iterator.remove();
+                                    } catch (Exception exception) {
+                                        exception.printStackTrace();
+                                    }
+                                }
+
+
+                                packet.onRecievedByThisServer(me);
+
+                                iterator = globalPacketListeners.iterator();
+                                while (iterator.hasNext()) {
+                                    GlobalPacketListener listener = iterator.next();
+                                    if (listener.runBeforeProcessing) break;
+                                    try {
+                                        if (listener.fn.apply(packet)) iterator.remove();
+                                    } catch (Exception exception) {
+                                        exception.printStackTrace();
+                                    }
+                                }
+
+                                try {
+                                    sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.DONE));
+                                } catch (PacketTransmissionException e) {
+                                    e.printStackTrace();
+                                }
+                            }).start();
                         }
-
-                        final SocketServerRequestHandler me = this;
-
-                        new Thread(() -> {
-                            Iterator<GlobalPacketListener> iterator = globalPacketListeners.iterator();
-                            while(iterator.hasNext()) {
-                                GlobalPacketListener listener = iterator.next();
-                                if (!listener.runBeforeProcessing) break;
-                                try {
-                                    if (listener.fn.apply(packet)) iterator.remove();
-                                } catch (Exception exception) {
-                                    exception.printStackTrace();
-                                }
-                            }
-
-
-                            packet.onRecievedByThisServer(me);
-
-                            iterator = globalPacketListeners.iterator();
-                            while(iterator.hasNext()) {
-                                GlobalPacketListener listener = iterator.next();
-                                if(listener.runBeforeProcessing) break;
-                                try {
-                                    if(listener.fn.apply(packet)) iterator.remove();
-                                } catch (Exception exception) {
-                                    exception.printStackTrace();
-                                }
-                            }
-
-                            try {
-                                sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.DONE));
-                            } catch (PacketTransmissionException e) {
-                                e.printStackTrace();
-                            }
-                        }).start();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

@@ -32,7 +32,7 @@ public class PacketClientFetchPlayer extends ClientPacket {
         Player nonExact = null;
 
         try {
-            for(SocketServerRequestHandler handler : server.server.requestHandlers) {
+            for(SocketServerRequestHandler handler : server.server.requestHandlers.values()) {
                 for(Player player : handler.players) {
                     if(nameQuery != null && player.getName().equalsIgnoreCase(nameQuery)) {
                         server.sendPacket(new PacketServerFetchPlayerResponse(packetId, player));
