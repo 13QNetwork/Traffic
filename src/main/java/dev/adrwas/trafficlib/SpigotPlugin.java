@@ -1,4 +1,4 @@
-package dev.adrwas.trafficlib.spigot;
+package dev.adrwas.trafficlib;
 
 import dev.adrwas.trafficlib.TrafficLib;
 import dev.adrwas.trafficlib.client.SocketClient;

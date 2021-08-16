@@ -42,7 +42,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>dev.adrwas.trafficlib.executable.TrafficLibExecutable</mainClass>
+                            <mainClass>dev.adrwas.trafficlib.TrafficLibExecutable</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

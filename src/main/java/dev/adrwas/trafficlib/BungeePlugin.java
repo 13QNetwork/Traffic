@@ -1,4 +1,4 @@
-package dev.adrwas.trafficlib.bungee;
+package dev.adrwas.trafficlib;
 
 import dev.adrwas.trafficlib.TrafficLib;
 import net.md_5.bungee.api.plugin.Plugin;

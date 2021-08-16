@@ -1,4 +1,4 @@
-package dev.adrwas.trafficlib.executable;
+package dev.adrwas.trafficlib;
 
 import dev.adrwas.trafficlib.TrafficLib;
 import dev.adrwas.trafficlib.server.SocketServer;
