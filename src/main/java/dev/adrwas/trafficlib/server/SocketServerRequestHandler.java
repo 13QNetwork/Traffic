@@ -72,6 +72,7 @@ public class SocketServerRequestHandler extends Thread {
 
                     bytes = EncryptionManager.decrypt(bytes, this.password);
                     try {
+
                         ClientPacket packet = (ClientPacket) Packet.fromByte(bytes);
 
                         if(recievedHandshake || packet instanceof PacketClientHandshake) {

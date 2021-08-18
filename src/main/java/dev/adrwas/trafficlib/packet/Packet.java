@@ -52,4 +52,20 @@ public interface Packet {
         return null;
     }
 
+    static Object fromByteToObject(byte[] bytes) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+
+            ObjectInput in = new ObjectInputStream(bis);
+
+            Object o = in.readObject();
+
+            in.close();
+            return o;
+        } catch (IOException | ClassNotFoundException exception) {
+            exception.printStackTrace();
+        }
+
+        return null;
+    }
 }

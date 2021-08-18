@@ -23,24 +23,41 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * A <i>socket client</i> facilitates a socket connection between a client and a master server,
+ * and handles the client-side processing of the connection. The SocketClient class can be
+ * used to send packets to the master server.
+ * @since Traffic 0.1
+ **/
 public class SocketClient {
 
-    private Socket socket;
+    public Socket socket;
+    public DataInputStream input;
+    public DataOutputStream output;
 
-    private DataInputStream input;
-    private DataOutputStream output;
-
-    private String address;
-    private int port;
-
-    private boolean closed = false;
+    public String address;
+    public int port;
 
     private String encryptionPassword;
 
-    private Thread thread;
+    public Thread thread;
 
+    /**
+     * A hashmap of packet IDs and pending packets, storing data about packets
+     * in transit. Packets without the NoTransitUpdates marker are added to the hashmap
+     * when sent and removed when fully processed by the master server.
+     * @since Traffic 0.1
+     **/
     public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
 
+    /**
+     * A hashmap of global packet listeners. Listeners in the hashmap contain a {@link java.util.function.Function}
+     * with a <b>boolean</b> return value and a {@link dev.adrwas.trafficlib.packet.Packet} parameter.
+     *
+     * The function is run every time a packet is received by the client, and the listener
+     * will be removed from the hashmap if the function returns <b>true</b>.
+     * @since Traffic 0.1
+     **/
     public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
 
     public boolean sentSuccessfulHandshake = false;
@@ -69,10 +86,16 @@ public class SocketClient {
             byte[] bytes;
             int length;
 
-            sendPacket(new PacketClientHandshake(Packet.generateId(), "server", "bungee", "0.1", new String[]{}), Packet.PacketOperationTiming.ASYNC);
+            sendPacket(new PacketClientHandshake(
+                Packet.generateId(),
+                "server",
+                "bungee",
+                "0.1",
+                new String[]{}
+            ), Packet.PacketOperationTiming.ASYNC);
 
             try {
-                while(!closed && (length = input.readInt()) > -1) {
+                while(!socket.isClosed() && (length = input.readInt()) > -1) {
                     bytes = new byte[length];
 
                     input.readFully(bytes);
@@ -125,33 +148,31 @@ public class SocketClient {
                 }
             } catch (SSLException e) {
                 System.out.println("Socket server closed!");
-            } catch (InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
-            } catch (NoSuchPaddingException e) {
-                e.printStackTrace();
-            } catch (IllegalBlockSizeException e) {
-                e.printStackTrace();
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (BadPaddingException e) {
-                e.printStackTrace();
-            } catch (InvalidKeySpecException e) {
-                e.printStackTrace();
-            } catch (InvalidKeyException e) {
-                e.printStackTrace();
-            } catch (PacketTransmissionException e) {
-                e.printStackTrace();
             }
 
 
             input.close();
             output.close();
             socket.close();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
         } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (PacketTransmissionException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (PacketTransmissionException e) {
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
             e.printStackTrace();
         }
     }

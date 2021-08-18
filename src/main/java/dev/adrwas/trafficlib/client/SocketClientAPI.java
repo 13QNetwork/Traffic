@@ -1,6 +1,5 @@
 package dev.adrwas.trafficlib.client;
 
-import java.net.Socket;
 
 public class SocketClientAPI {
 
