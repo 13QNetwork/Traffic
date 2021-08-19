@@ -1,12 +1,9 @@
 package dev.adrwas.trafficlib;
 
-import dev.adrwas.trafficlib.TrafficLib;
-import dev.adrwas.trafficlib.client.SocketClient;
 import dev.adrwas.trafficlib.client.SocketClientAPI;
 import dev.adrwas.trafficlib.packet.Packet;
 import dev.adrwas.trafficlib.packet.PacketClientPlayerUpdate;
 import dev.adrwas.trafficlib.packet.PacketTransmissionException;
-import dev.adrwas.trafficlib.packet.player.Player;
 import dev.adrwas.trafficlib.packet.player.SpigotPlayer;
 import dev.adrwas.trafficlib.server.SocketServer;
 import org.bukkit.Bukkit;
@@ -17,7 +14,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
 

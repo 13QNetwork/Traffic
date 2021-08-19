@@ -2,6 +2,8 @@ package dev.adrwas.trafficlib.client;
 
 import dev.adrwas.trafficlib.packet.*;
 import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
+import dev.adrwas.trafficlib.packet.Packet;
+import dev.adrwas.trafficlib.packet.v_0_1_R1.PacketClientHandshake;
 import dev.adrwas.trafficlib.util.EncryptionManager;
 
 import javax.crypto.BadPaddingException;
@@ -52,7 +54,7 @@ public class SocketClient {
 
     /**
      * A hashmap of global packet listeners. Listeners in the hashmap contain a {@link java.util.function.Function}
-     * with a <b>boolean</b> return value and a {@link dev.adrwas.trafficlib.packet.Packet} parameter.
+     * with a <b>boolean</b> return value and a {@link Packet} parameter.
      *
      * The function is run every time a packet is received by the client, and the listener
      * will be removed from the hashmap if the function returns <b>true</b>.
@@ -148,6 +150,8 @@ public class SocketClient {
                 }
             } catch (SSLException e) {
                 System.out.println("Socket server closed!");
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
 
 

@@ -3,6 +3,8 @@ package dev.adrwas.trafficlib.server;
 import dev.adrwas.trafficlib.packet.*;
 import dev.adrwas.trafficlib.packet.PendingPacket.PendingPacketStatus;
 import dev.adrwas.trafficlib.packet.player.Player;
+import dev.adrwas.trafficlib.packet.Packet;
+import dev.adrwas.trafficlib.packet.v_0_1_R1.PacketClientHandshake;
 import dev.adrwas.trafficlib.util.EncryptionManager;
 
 import javax.crypto.BadPaddingException;
@@ -72,6 +74,26 @@ public class SocketServerRequestHandler extends Thread {
 
                     bytes = EncryptionManager.decrypt(bytes, this.password);
                     try {
+                        try {
+                            Object packetAsObject = Packet.fromByteToObject(bytes);
+                            if(packetAsObject == null) {
+                                log("Client sent null object, closing connection!");
+                                socket.close();
+                                return;
+                            }
+
+                            if(!(packetAsObject instanceof ClientPacket)) {
+                                log("Client sent object without ClientPacket class, closing connection!");
+                                socket.close();
+                                return;
+                            }
+                        } catch (ClassNotFoundException exception) {
+                                log("Client sent object of unknown class, closing connection!");
+                                socket.close();
+                                return;
+                        }
+
+
 
                         ClientPacket packet = (ClientPacket) Packet.fromByte(bytes);
 

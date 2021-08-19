@@ -1,7 +1,10 @@
-package dev.adrwas.trafficlib.packet;
+package dev.adrwas.trafficlib.packet.v_0_1_R1;
 
 import dev.adrwas.trafficlib.TrafficLib;
 import dev.adrwas.trafficlib.client.SocketClient;
+import dev.adrwas.trafficlib.packet.ClientPacket;
+import dev.adrwas.trafficlib.packet.PacketServerHandshakeResponse;
+import dev.adrwas.trafficlib.packet.TrafficHandshakeException;
 import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 
 import java.io.IOException;

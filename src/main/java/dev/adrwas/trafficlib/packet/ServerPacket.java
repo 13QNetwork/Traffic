@@ -1,7 +1,6 @@
 package dev.adrwas.trafficlib.packet;
 
 import dev.adrwas.trafficlib.client.SocketClient;
-import dev.adrwas.trafficlib.server.SocketServer;
 import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 
 import java.io.Serializable;

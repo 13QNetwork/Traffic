@@ -2,12 +2,9 @@ package dev.adrwas.trafficlib.packet;
 
 import dev.adrwas.trafficlib.client.SocketClient;
 import dev.adrwas.trafficlib.packet.player.Player;
+import dev.adrwas.trafficlib.packet.v_0_1_R1.PacketServerFetchPlayerResponse;
 import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.UUID;
 
 public class PacketClientFetchPlayer extends ClientPacket {

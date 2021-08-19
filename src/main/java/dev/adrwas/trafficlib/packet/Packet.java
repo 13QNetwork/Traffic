@@ -34,7 +34,7 @@ public interface Packet {
         return bytes;
     }
 
-    static Packet fromByte(byte[] bytes) {
+    static Packet fromByte(byte[] bytes) throws ClassNotFoundException {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
 
@@ -45,14 +45,14 @@ public interface Packet {
 
             in.close();
             return packet;
-        } catch (IOException | ClassNotFoundException exception) {
+        } catch (IOException exception) {
             exception.printStackTrace();
         }
 
         return null;
     }
 
-    static Object fromByteToObject(byte[] bytes) {
+    static Object fromByteToObject(byte[] bytes) throws ClassNotFoundException {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
 
@@ -62,7 +62,7 @@ public interface Packet {
 
             in.close();
             return o;
-        } catch (IOException | ClassNotFoundException exception) {
+        } catch (IOException exception) {
             exception.printStackTrace();
         }
 

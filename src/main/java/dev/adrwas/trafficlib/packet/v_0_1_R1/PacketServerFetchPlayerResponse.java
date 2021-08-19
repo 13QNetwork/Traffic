@@ -1,6 +1,7 @@
-package dev.adrwas.trafficlib.packet;
+package dev.adrwas.trafficlib.packet.v_0_1_R1;
 
 import dev.adrwas.trafficlib.client.SocketClient;
+import dev.adrwas.trafficlib.packet.ServerPacket;
 import dev.adrwas.trafficlib.packet.player.Player;
 import dev.adrwas.trafficlib.server.SocketServerRequestHandler;
 
