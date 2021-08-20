@@ -53,15 +53,14 @@ public class SocketClient {
     public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
 
     /**
-     * A hashmap of global packet listeners. Listeners in the hashmap contain a {@link java.util.function.Function}
+     * A {@link java.util.HashMap} of global packet listeners. Listeners in the hashmap contain a {@link java.util.function.Function}
      * with a <b>boolean</b> return value and a {@link Packet} parameter.
      *
      * The function is run every time a packet is received by the client, and the listener
-     * will be removed from the hashmap if the function returns <b>true</b>.
+     * will be removed from the {@link java.util.HashMap} if the {@link java.util.function.Function} returns <b>true</b>.
      * @since Traffic 0.1
      **/
     public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
-
     public boolean sentSuccessfulHandshake = false;
 
     public SocketClient(String address, int port, String encryptionPassword) {

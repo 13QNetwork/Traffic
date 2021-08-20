@@ -25,15 +25,30 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * A <i>socket server request handler</i> facilitates a socket connection between the master
+ * server and a connecting socket client. It also handles the server-side processing of the
+ * connection. The SocketClient class can be used to send packets to the connecting
+ * socket client.
+ * @since Traffic 0.1
+ **/
 public class SocketServerRequestHandler extends Thread {
 
+    // Java socket
     public Socket socket;
-
+    // Input Reader
     private DataInputStream in;
+    // Output writer
     private DataOutputStream out;
 
+    /**
+     * A {@link dev.adrwas.trafficlib.server.SocketServer} containing active Traffic
+     * connections and server configuration. It handles the core socket server and
+     * its connections.
+     **/
     public final SocketServer server;
 
+    // Encryption password
     private String password;
 
     public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
