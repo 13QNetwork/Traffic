@@ -24,48 +24,103 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 /**
- * A <i>socket server request handler</i> facilitates a socket connection between the master
- * server and a connecting socket client. It also handles the server-side processing of the
- * connection. The SocketClient class can be used to send packets to the connecting
- * socket client.
+ * A <b>SocketServerRequestHandler</b> facilitates a
+ * socket connection between the master server and a
+ * connecting socket client. It also handles the
+ * server-side processing of the connection. The
+ * SocketServerRequestHandler class can be used to send a
+ * {@link dev.adrwas.trafficlib.packet.ServerPacket}
+ * to the connecting socket client. The request handler
+ * processes any incoming {@link dev.adrwas.trafficlib.packet.ClientPacket}.
+ * <br>
+ * <br>
+ * The request handler runs on a separate {@link java.lang.Thread}
+ * to allow other connections to run alongside it.
+ * When a {@link dev.adrwas.trafficlib.packet.ClientPacket}
+ * is received by the handler, it creates a new temporary
+ * Thread to process it, which prevents packet
+ * backlogging.
+ *
  * @since Traffic 0.1
  **/
 public class SocketServerRequestHandler extends Thread {
 
-    // Java socket
     public Socket socket;
-    // Input Reader
     private DataInputStream in;
-    // Output writer
     private DataOutputStream out;
+    private String password; // Encryption password
 
     /**
-     * A {@link dev.adrwas.trafficlib.server.SocketServer} containing active Traffic
-     * connections and server configuration. It handles the core socket server and
-     * its connections.
+     * A {@link dev.adrwas.trafficlib.server.SocketServer}
+     * containing active Traffic connections and server
+     * configuration. It handles the core socket server
+     * and its connections.
+     *
+     * @since Traffic 0.1
      **/
     public final SocketServer server;
 
-    // Encryption password
-    private String password;
 
+    /**
+     * A {@link java.util.HashMap} of packet IDs and
+     * {@link dev.adrwas.trafficlib.packet.PendingPacket}s,
+     * storing data about packets in transit. Packets without
+     * the {@link dev.adrwas.trafficlib.packet.NoTransitUpdates}
+     * marker are added to the {@link java.util.HashMap} when
+     * sent and removed when fully processed by the master server.
+     *
+     * @since Traffic 0.1
+     **/
     public HashMap<Long, PendingPacket> transitPackets = new HashMap<Long, PendingPacket>();
 
+    /**
+     * A {@link java.util.HashMap} of
+     * {@link dev.adrwas.trafficlib.packet.GlobalPacketListener}s.
+     * Listeners in the {@link java.util.HashMap} contain a
+     * {@link java.util.function.Function} with a <b>boolean</b>
+     * return value and a {@link Packet} parameter.
+     *
+     * The {@link Function} is run every time a
+     * {@link dev.adrwas.trafficlib.packet.Packet} is received by the
+     * client, and the listener will be removed from the {@link java.util.HashMap}
+     * if the {@link Function}
+     * returns <b>true</b>.
+     *
+     * @since Traffic 0.1
+     **/
     public List<GlobalPacketListener> globalPacketListeners = new ArrayList<GlobalPacketListener>();
 
+    /**
+     * A {@link java.util.List} of all
+     * {@link dev.adrwas.trafficlib.packet.player.Player}s
+     * connected to the client Minecraft server.
+     * **/
     public ArrayList<Player> players = new ArrayList<Player>();
 
     public String serverId;
     public String serverType;
-
     public String trafficLibVersion;
 
+    /**
+     * A {@link java.util.List} of all Traffic plugins, used to
+     * ensure plugin compatibility with connecting clients.
+     * **/
     public String[] plugins;
 
+    /**
+     * Prevents non-handshake incoming packets from being
+     * received without a valid handshake packet being recieved.
+     * **/
     public boolean recievedHandshake = false;
 
+    /**
+     * Creates a {@link SocketServerRequestHandler} with a
+     * {@link dev.adrwas.trafficlib.server.SocketServer}, {@link java.net.Socket},
+     * and password ({@link String})
+     * **/
     public SocketServerRequestHandler(SocketServer server, Socket socket, String password) {
         this.socket = socket;
         this.server = server;
@@ -75,7 +130,9 @@ public class SocketServerRequestHandler extends Thread {
     @Override
     public void run() {
         try {
+            // print connection recieved TODO improve with emojis, colors more
             System.out.println("Recieved a connection from " + socket.getInetAddress().toString() + "...");
+
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
 
@@ -85,9 +142,9 @@ public class SocketServerRequestHandler extends Thread {
             try {
                 while((length = in.readInt()) > -1) {
                     bytes = new byte[length];
-                    in.readFully(bytes, 0, length);
-
+                    in.readFully(bytes, 0, length); // Read bytes
                     bytes = EncryptionManager.decrypt(bytes, this.password);
+
                     try {
                         try {
                             Object packetAsObject = Packet.fromByteToObject(bytes);

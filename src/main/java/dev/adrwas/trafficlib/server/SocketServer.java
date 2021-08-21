@@ -15,7 +15,8 @@ public class SocketServer extends Thread {
     public HashMap<String, SocketServerRequestHandler> requestHandlers = new HashMap<String, SocketServerRequestHandler>();
 
     public SocketServer(int port, String password) {
-        this.port = port; this.password = password;
+        this.port = port;
+        this.password = password;
     }
 
     public void startServer() {
