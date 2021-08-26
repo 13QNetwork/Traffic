@@ -140,61 +140,89 @@ public class SocketServerRequestHandler extends Thread {
             int length;
 
             try {
+
                 while((length = in.readInt()) > -1) {
+
                     bytes = new byte[length];
                     in.readFully(bytes, 0, length); // Read bytes
                     bytes = EncryptionManager.decrypt(bytes, this.password);
 
                     try {
+
+                        ClientPacket packet;
+
+                        // Try/catch block prevents ClassNotFoundException
                         try {
+                            // Gets packet as an object to prevent casting exception
                             Object packetAsObject = Packet.fromByteToObject(bytes);
+
+                            // Packet will be null if deserialization throws error
                             if(packetAsObject == null) {
                                 log("Client sent null object, closing connection!");
+
                                 socket.close();
                                 return;
                             }
 
+                            // If object recieved is not a ClientPacket
                             if(!(packetAsObject instanceof ClientPacket)) {
                                 log("Client sent object without ClientPacket class, closing connection!");
                                 socket.close();
                                 return;
                             }
+
+                            packet = (ClientPacket) packetAsObject;
                         } catch (ClassNotFoundException exception) {
                                 log("Client sent object of unknown class, closing connection!");
                                 socket.close();
                                 return;
                         }
 
-
-
-                        ClientPacket packet = (ClientPacket) Packet.fromByte(bytes);
-
+                        // Only lets in handshake packets, unless already received one
                         if(recievedHandshake || packet instanceof PacketClientHandshake) {
-                            if (!(packet instanceof NoTransitUpdates)) {
-                                sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));
-                            }
 
+                            // Sends a transit update, unless marked with NoTransitUpdates
+                            if (!(packet instanceof NoTransitUpdates))
+                                sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.PROCESSING));
+
+                            // Assigns this to a final variable, so it can be used inside the threads
                             final SocketServerRequestHandler me = this;
 
+                            // Runs code asynchronously to prevent poorly-written user code from causing a bottleneck.
                             new Thread(() -> {
+
+                                // Iterator to allow removal of listeners
                                 Iterator<GlobalPacketListener> iterator = globalPacketListeners.iterator();
                                 while (iterator.hasNext()) {
                                     GlobalPacketListener listener = iterator.next();
-                                    if (!listener.runBeforeProcessing) break;
+
+                                    // This block is run before processing, so all non-runBeforeProcessing listeners should be ignored
+                                    if (!listener.runBeforeProcessing)
+                                        break;
+
                                     try {
-                                        if (listener.fn.apply(packet)) iterator.remove();
+                                        if(listener.fn.apply(packet))
+                                            iterator.remove();
                                     } catch (Exception exception) {
                                         exception.printStackTrace();
                                     }
+
                                 }
 
-
+                                // Runs packets onReceived code
+                                // This is the most important part of the thread block
                                 packet.onRecievedByThisServer(me);
 
+                                // Repeats the runBeforeProcessing code, running all non-runBeforeProcessing listeners
                                 iterator = globalPacketListeners.iterator();
+
                                 while (iterator.hasNext()) {
                                     GlobalPacketListener listener = iterator.next();
-                                    if (listener.runBeforeProcessing) break;
+
+                                    // This block is run after processing, so all runBeforeProcessing listeners should be ignored
+                                    if (listener.runBeforeProcessing)
+                                        break;
+
                                     try {
                                         if (listener.fn.apply(packet)) iterator.remove();
                                     } catch (Exception exception) {
@@ -202,6 +230,7 @@ public class SocketServerRequestHandler extends Thread {
                                     }
                                 }
 
+                                // Send done status
                                 try {
                                     sendPacket(new PacketServerPacketStatus(packet.packetId, PendingPacketStatus.DONE));
                                 } catch (PacketTransmissionException e) {
@@ -225,11 +254,32 @@ public class SocketServerRequestHandler extends Thread {
         }
     }
 
+    /**
+     * Sends a basic {@link dev.adrwas.trafficlib.packet.ServerPacket} to
+     * the connecting {@link dev.adrwas.trafficlib.client.SocketClient} and
+     * pauses the current {@link java.lang.Thread} until a specific desired
+     * packet is received. The {@link java.util.function.Function} within the
+     * {@link dev.adrwas.trafficlib.packet.GlobalPacketListener} parameter is run
+     * every time a {@link dev.adrwas.trafficlib.packet.ClientPacket} is received.
+     * If the function returns true for any incoming packet, the original Thread
+     * will resume and the function will no longer run when packets are received.
+     * This function can be run either before or after the packet is processed by
+     * specifying **GlobalPacketListener.runBeforeProcessing**.
+     *
+     * Your {@link dev.adrwas.trafficlib.packet.GlobalPacketListener} packet is
+     * run on a packet processing Thread, so avoid long, synchronous operations such as
+     * database queries ir large calculations as they'll bottleneck other listeners, as
+     * well as the packet itself if your listener is run before processing.
+     *
+     * @param serverPacket packet you want to send
+     * @param listener listener, run every time a packet is received until its function returns true
+     * @return the {@link dev.adrwas.trafficlib.packet.ClientPacket} received when the {@link dev.adrwas.trafficlib.packet.GlobalPacketListener} returns **true**
+     * @throws PacketTransmissionException
+     */
     public Packet sendPacketWaitOtherPacket(ServerPacket serverPacket, GlobalPacketListener listener) throws PacketTransmissionException {
         PendingPacket pendingPacket = new PendingPacket(serverPacket, PendingPacketStatus.SENDING);
 
         final Thread thread = Thread.currentThread();
-        
         AtomicReference<Packet> packetAtomicReference = new AtomicReference<Packet>();
         
         globalPacketListeners.add(new GlobalPacketListener(listener.runBeforeProcessing, (packet) -> {
